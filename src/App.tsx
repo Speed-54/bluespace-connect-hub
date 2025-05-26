@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import ClientPortal from "./pages/ClientPortal";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/client-portal" element={<ClientPortal />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
