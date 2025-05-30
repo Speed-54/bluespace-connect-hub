@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -14,13 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,11 +27,10 @@ import {
   MoreHorizontal, 
   Edit, 
   Trash2, 
-  Mail,
-  Phone,
-  MapPin
+  Mail
 } from 'lucide-react';
 import { User } from '@/hooks/useAuth';
+import { useUsers, useDeleteUser } from '@/hooks/useUsers';
 import CreateUserDialog from './CreateUserDialog';
 import EditUserDialog from './EditUserDialog';
 
@@ -49,33 +40,8 @@ const UserManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // Mock users data - in real app this would come from your backend
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      name: 'John Smith',
-      email: 'john@example.com',
-      role: 'client',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john',
-      company: 'Tech Solutions Inc.'
-    },
-    {
-      id: '2',
-      name: 'Jane Doe',
-      email: 'jane@example.com',
-      role: 'developer',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jane',
-      skills: ['React', 'Node.js', 'TypeScript'],
-      bio: 'Full-stack developer with 5+ years experience'
-    },
-    {
-      id: '3',
-      name: 'Admin User',
-      email: 'admin@bluespace.tech',
-      role: 'admin',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin'
-    }
-  ]);
+  const { data: users = [], isLoading } = useUsers();
+  const deleteUserMutation = useDeleteUser();
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -94,23 +60,12 @@ const UserManagement = () => {
   };
 
   const handleDeleteUser = (userId: string) => {
-    setUsers(users.filter(user => user.id !== userId));
+    deleteUserMutation.mutate(userId);
   };
 
-  const handleUpdateUser = (updatedUser: User) => {
-    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
-    setEditingUser(null);
-  };
-
-  const handleCreateUser = (newUser: Omit<User, 'id'>) => {
-    const user: User = {
-      ...newUser,
-      id: Date.now().toString(),
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newUser.email}`
-    };
-    setUsers([...users, user]);
-    setIsCreateDialogOpen(false);
-  };
+  if (isLoading) {
+    return <div>Loading users...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -223,6 +178,7 @@ const UserManagement = () => {
                         <DropdownMenuItem 
                           onClick={() => handleDeleteUser(user.id)}
                           className="text-red-600"
+                          disabled={deleteUserMutation.isPending}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
@@ -241,7 +197,6 @@ const UserManagement = () => {
       <CreateUserDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
-        onCreateUser={handleCreateUser}
       />
 
       {/* Edit User Dialog */}
@@ -250,7 +205,6 @@ const UserManagement = () => {
           user={editingUser}
           open={!!editingUser}
           onOpenChange={() => setEditingUser(null)}
-          onUpdateUser={handleUpdateUser}
         />
       )}
     </div>

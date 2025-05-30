@@ -29,75 +29,14 @@ import {
   DollarSign,
   Clock
 } from 'lucide-react';
+import { useProjects, useDeleteProject } from '@/hooks/useProjects';
 import CreateProjectDialog from './CreateProjectDialog';
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  status: 'draft' | 'active' | 'completed' | 'cancelled';
-  client: {
-    id: string;
-    name: string;
-    email: string;
-    avatar: string;
-  };
-  developers: Array<{
-    id: string;
-    name: string;
-    email: string;
-    avatar: string;
-  }>;
-  budget: number;
-  deadline: string;
-  createdAt: string;
-}
 
 const ProjectManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
-  // Mock projects data
-  const [projects, setProjects] = useState<Project[]>([
-    {
-      id: '1',
-      title: 'E-commerce Platform',
-      description: 'Modern e-commerce platform with React and Node.js',
-      status: 'active',
-      client: {
-        id: '1',
-        name: 'John Smith',
-        email: 'john@example.com',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john'
-      },
-      developers: [
-        {
-          id: '2',
-          name: 'Jane Doe',
-          email: 'jane@example.com',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jane'
-        }
-      ],
-      budget: 15000,
-      deadline: '2024-03-15',
-      createdAt: '2024-01-10'
-    },
-    {
-      id: '2',
-      title: 'Mobile App Development',
-      description: 'Cross-platform mobile app for inventory management',
-      status: 'draft',
-      client: {
-        id: '3',
-        name: 'Sarah Wilson',
-        email: 'sarah@example.com',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah'
-      },
-      developers: [],
-      budget: 25000,
-      deadline: '2024-04-20',
-      createdAt: '2024-01-15'
-    }
-  ]);
+  const { data: projects = [], isLoading } = useProjects();
+  const deleteProjectMutation = useDeleteProject();
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -110,18 +49,12 @@ const ProjectManagement = () => {
   };
 
   const handleDeleteProject = (projectId: string) => {
-    setProjects(projects.filter(project => project.id !== projectId));
+    deleteProjectMutation.mutate(projectId);
   };
 
-  const handleCreateProject = (newProject: Omit<Project, 'id' | 'createdAt'>) => {
-    const project: Project = {
-      ...newProject,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    setProjects([...projects, project]);
-    setIsCreateDialogOpen(false);
-  };
+  if (isLoading) {
+    return <div>Loading projects...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -281,6 +214,7 @@ const ProjectManagement = () => {
                         <DropdownMenuItem 
                           onClick={() => handleDeleteProject(project.id)}
                           className="text-red-600"
+                          disabled={deleteProjectMutation.isPending}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
                           Delete
@@ -299,7 +233,6 @@ const ProjectManagement = () => {
       <CreateProjectDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
-        onCreateProject={handleCreateProject}
       />
     </div>
   );
