@@ -18,17 +18,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { User } from '@/hooks/useAuth';
+import { useCreateUser } from '@/hooks/useUsers';
 
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateUser: (user: Omit<User, 'id'>) => void;
 }
 
 const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   open,
   onOpenChange,
-  onCreateUser,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -39,7 +38,9 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
     bio: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const createUserMutation = useCreateUser();
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const newUser: Omit<User, 'id'> = {
@@ -51,15 +52,20 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       ...(formData.bio && { bio: formData.bio })
     };
 
-    onCreateUser(newUser);
-    setFormData({
-      name: '',
-      email: '',
-      role: 'developer',
-      company: '',
-      skills: '',
-      bio: ''
-    });
+    try {
+      await createUserMutation.mutateAsync(newUser);
+      setFormData({
+        name: '',
+        email: '',
+        role: 'developer',
+        company: '',
+        skills: '',
+        bio: ''
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to create user:', error);
+    }
   };
 
   return (
@@ -140,11 +146,21 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
           )}
           
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              className="flex-1"
+              disabled={createUserMutation.isPending}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Create User
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={createUserMutation.isPending}
+            >
+              {createUserMutation.isPending ? 'Creating...' : 'Create User'}
             </Button>
           </div>
         </form>

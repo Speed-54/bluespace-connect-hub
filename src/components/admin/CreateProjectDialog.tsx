@@ -17,17 +17,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useCreateProject } from '@/hooks/useProjects';
+import { useUsersByRole } from '@/hooks/useUsers';
+import { Project } from '@/services/projectService';
 
 interface CreateProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateProject: (project: any) => void;
 }
 
 const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
   open,
   onOpenChange,
-  onCreateProject,
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -35,46 +36,48 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
     budget: '',
     deadline: '',
     clientId: '',
-    status: 'draft'
+    status: 'draft' as 'draft' | 'active' | 'completed' | 'cancelled'
   });
 
-  // Mock clients data - in real app this would come from your backend
-  const clients = [
-    { id: '1', name: 'John Smith', company: 'Tech Solutions Inc.' },
-    { id: '3', name: 'Sarah Wilson', company: 'Innovation Labs' }
-  ];
+  const createProjectMutation = useCreateProject();
+  const { data: clients = [], isLoading: loadingClients } = useUsersByRole('client');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const selectedClient = clients.find(c => c.id === formData.clientId);
     
     if (!selectedClient) return;
 
-    const newProject = {
+    const newProject: Omit<Project, 'id' | 'createdAt' | 'updatedAt'> = {
       title: formData.title,
       description: formData.description,
-      status: formData.status as 'draft' | 'active' | 'completed' | 'cancelled',
+      status: formData.status,
       client: {
         id: selectedClient.id,
         name: selectedClient.name,
-        email: `${selectedClient.name.toLowerCase().replace(' ', '.')}@example.com`,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedClient.name}`
+        email: selectedClient.email,
+        avatar: selectedClient.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedClient.name}`
       },
       developers: [],
       budget: parseInt(formData.budget) || 0,
       deadline: formData.deadline
     };
 
-    onCreateProject(newProject);
-    setFormData({
-      title: '',
-      description: '',
-      budget: '',
-      deadline: '',
-      clientId: '',
-      status: 'draft'
-    });
+    try {
+      await createProjectMutation.mutateAsync(newProject);
+      setFormData({
+        title: '',
+        description: '',
+        budget: '',
+        deadline: '',
+        clientId: '',
+        status: 'draft'
+      });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+    }
   };
 
   return (
@@ -107,14 +110,18 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
           
           <div className="space-y-2">
             <Label htmlFor="client">Client</Label>
-            <Select value={formData.clientId} onValueChange={(value) => setFormData({ ...formData, clientId: value })}>
+            <Select 
+              value={formData.clientId} 
+              onValueChange={(value) => setFormData({ ...formData, clientId: value })}
+              disabled={loadingClients}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Select a client" />
+                <SelectValue placeholder={loadingClients ? "Loading clients..." : "Select a client"} />
               </SelectTrigger>
               <SelectContent>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
-                    {client.name} - {client.company}
+                    {client.name} {client.company ? `- ${client.company}` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -148,7 +155,7 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
           
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
-            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+            <Select value={formData.status} onValueChange={(value: any) => setFormData({ ...formData, status: value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
@@ -162,11 +169,21 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
           </div>
           
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              className="flex-1"
+              disabled={createProjectMutation.isPending}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Create Project
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={createProjectMutation.isPending || !formData.clientId}
+            >
+              {createProjectMutation.isPending ? 'Creating...' : 'Create Project'}
             </Button>
           </div>
         </form>

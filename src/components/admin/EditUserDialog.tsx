@@ -18,19 +18,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { User } from '@/hooks/useAuth';
+import { useUpdateUser } from '@/hooks/useUsers';
 
 interface EditUserDialogProps {
   user: User;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onUpdateUser: (user: User) => void;
 }
 
 const EditUserDialog: React.FC<EditUserDialogProps> = ({
   user,
   open,
   onOpenChange,
-  onUpdateUser,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -40,6 +39,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     skills: '',
     bio: ''
   });
+
+  const updateUserMutation = useUpdateUser();
 
   useEffect(() => {
     if (user) {
@@ -54,7 +55,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     }
   }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const updatedUser: User = {
@@ -67,7 +68,12 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
       ...(formData.bio && { bio: formData.bio })
     };
 
-    onUpdateUser(updatedUser);
+    try {
+      await updateUserMutation.mutateAsync(updatedUser);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to update user:', error);
+    }
   };
 
   return (
@@ -148,11 +154,21 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
           )}
           
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              className="flex-1"
+              disabled={updateUserMutation.isPending}
+            >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Update User
+            <Button 
+              type="submit" 
+              className="flex-1"
+              disabled={updateUserMutation.isPending}
+            >
+              {updateUserMutation.isPending ? 'Updating...' : 'Update User'}
             </Button>
           </div>
         </form>

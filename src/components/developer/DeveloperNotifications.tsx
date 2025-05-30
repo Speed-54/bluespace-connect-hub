@@ -1,72 +1,26 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bell, Check, Clock, MessageSquare, FolderOpen } from 'lucide-react';
-
-interface Notification {
-  id: string;
-  type: 'project' | 'message' | 'deadline' | 'payment';
-  title: string;
-  description: string;
-  timestamp: string;
-  read: boolean;
-  priority: 'low' | 'medium' | 'high';
-}
+import { useAuth } from '@/hooks/useAuth';
+import { useNotifications, useMarkAsRead, useMarkAllAsRead } from '@/hooks/useNotifications';
 
 const DeveloperNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'project',
-      title: 'New Project Assignment',
-      description: 'You have been assigned to the E-commerce Platform project',
-      timestamp: '2 hours ago',
-      read: false,
-      priority: 'high'
-    },
-    {
-      id: '2',
-      type: 'message',
-      title: 'Client Message',
-      description: 'Sarah Johnson sent you a message about the API integration',
-      timestamp: '4 hours ago',
-      read: false,
-      priority: 'medium'
-    },
-    {
-      id: '3',
-      type: 'deadline',
-      title: 'Deadline Reminder',
-      description: 'Mobile App MVP is due in 2 days',
-      timestamp: '1 day ago',
-      read: true,
-      priority: 'high'
-    },
-    {
-      id: '4',
-      type: 'payment',
-      title: 'Payment Received',
-      description: 'Payment of $2,500 has been processed for Project Alpha',
-      timestamp: '2 days ago',
-      read: true,
-      priority: 'low'
-    }
-  ]);
+  const { user } = useAuth();
+  const { data: notifications = [], isLoading } = useNotifications(user?.id || '');
+  const markAsReadMutation = useMarkAsRead();
+  const markAllAsReadMutation = useMarkAllAsRead();
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
+    markAsReadMutation.mutate(id);
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notif => ({ ...notif, read: true }))
-    );
+    if (user?.id) {
+      markAllAsReadMutation.mutate(user.id);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -97,7 +51,36 @@ const DeveloperNotifications = () => {
     }
   };
 
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days > 0) {
+      return `${days} day${days > 1 ? 's' : ''} ago`;
+    } else if (hours > 0) {
+      return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    } else {
+      return 'Just now';
+    }
+  };
+
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loading notifications...</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -113,48 +96,63 @@ const DeveloperNotifications = () => {
             )}
           </CardTitle>
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={markAllAsRead}
+              disabled={markAllAsReadMutation.isPending}
+            >
               Mark all as read
             </Button>
           )}
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-4 rounded-lg border transition-colors ${
-                  notification.read ? 'bg-gray-50' : 'bg-blue-50 border-blue-200'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  {getNotificationIcon(notification.type)}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{notification.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{notification.description}</p>
-                        <p className="text-xs text-gray-500 mt-2">{notification.timestamp}</p>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        <Badge variant={getPriorityColor(notification.priority)}>
-                          {notification.priority}
-                        </Badge>
-                        {!notification.read && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => markAsRead(notification.id)}
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
-                        )}
+            {notifications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No notifications yet</p>
+              </div>
+            ) : (
+              notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`p-4 rounded-lg border transition-colors ${
+                    notification.read ? 'bg-gray-50' : 'bg-blue-50 border-blue-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {getNotificationIcon(notification.type)}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{notification.title}</h4>
+                          <p className="text-sm text-gray-600 mt-1">{notification.description}</p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {formatTimestamp(notification.timestamp)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <Badge variant={getPriorityColor(notification.priority)}>
+                            {notification.priority}
+                          </Badge>
+                          {!notification.read && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => markAsRead(notification.id)}
+                              disabled={markAsReadMutation.isPending}
+                            >
+                              <Check className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

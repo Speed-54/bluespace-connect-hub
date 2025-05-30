@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -12,10 +11,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Bell, Menu, User, LogOut, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnreadCount } from '@/hooks/useNotifications';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { data: unreadCount = 0 } = useUnreadCount(user?.id || '');
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -70,7 +71,11 @@ const Header = () => {
               <>
                 <Button variant="ghost" size="sm" className="relative">
                   <Bell className="h-5 w-5" />
-                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </Button>
                 
                 <DropdownMenu>
