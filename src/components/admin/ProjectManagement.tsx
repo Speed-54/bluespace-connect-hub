@@ -30,10 +30,14 @@ import {
   Clock
 } from 'lucide-react';
 import { useProjects, useDeleteProject } from '@/hooks/useProjects';
+import { Project } from '@/services/projectService';
 import CreateProjectDialog from './CreateProjectDialog';
+import EditProjectDialog from './EditProjectDialog';
 
 const ProjectManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   
   const { data: projects = [], isLoading } = useProjects();
   const deleteProjectMutation = useDeleteProject();
@@ -50,6 +54,11 @@ const ProjectManagement = () => {
 
   const handleDeleteProject = (projectId: string) => {
     deleteProjectMutation.mutate(projectId);
+  };
+
+  const handleEditProject = (project: Project) => {
+    setSelectedProject(project);
+    setIsEditDialogOpen(true);
   };
 
   if (isLoading) {
@@ -202,7 +211,7 @@ const ProjectManagement = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditProject(project)}>
                           <Edit className="mr-2 h-4 w-4" />
                           Edit Project
                         </DropdownMenuItem>
@@ -233,6 +242,13 @@ const ProjectManagement = () => {
       <CreateProjectDialog
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
+      />
+
+      {/* Edit Project Dialog */}
+      <EditProjectDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        project={selectedProject}
       />
     </div>
   );
