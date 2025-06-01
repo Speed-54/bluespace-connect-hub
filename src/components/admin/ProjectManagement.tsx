@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -19,6 +20,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Plus, 
   MoreHorizontal, 
@@ -27,9 +35,11 @@ import {
   Users,
   Calendar,
   DollarSign,
-  Clock
+  Clock,
+  ChevronDown,
+  Minus
 } from 'lucide-react';
-import { useProjects, useDeleteProject } from '@/hooks/useProjects';
+import { useProjects, useDeleteProject, useUpdateProject } from '@/hooks/useProjects';
 import { Project } from '@/services/projectService';
 import CreateProjectDialog from './CreateProjectDialog';
 import EditProjectDialog from './EditProjectDialog';
@@ -38,9 +48,12 @@ const ProjectManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [budgetEditingId, setBudgetEditingId] = useState<string | null>(null);
+  const [tempBudget, setTempBudget] = useState<number>(0);
   
   const { data: projects = [], isLoading } = useProjects();
   const deleteProjectMutation = useDeleteProject();
+  const updateProjectMutation = useUpdateProject();
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -59,6 +72,42 @@ const ProjectManagement = () => {
   const handleEditProject = (project: Project) => {
     setSelectedProject(project);
     setIsEditDialogOpen(true);
+  };
+
+  const handleStatusChange = (projectId: string, newStatus: string) => {
+    updateProjectMutation.mutate({
+      id: projectId,
+      updates: { status: newStatus as 'draft' | 'active' | 'completed' | 'cancelled' }
+    });
+  };
+
+  const handleBudgetAdjustment = (projectId: string, adjustment: number) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      const newBudget = Math.max(0, project.budget + adjustment);
+      updateProjectMutation.mutate({
+        id: projectId,
+        updates: { budget: newBudget }
+      });
+    }
+  };
+
+  const startBudgetEdit = (projectId: string, currentBudget: number) => {
+    setBudgetEditingId(projectId);
+    setTempBudget(currentBudget);
+  };
+
+  const saveBudgetEdit = (projectId: string) => {
+    updateProjectMutation.mutate({
+      id: projectId,
+      updates: { budget: tempBudget }
+    });
+    setBudgetEditingId(null);
+  };
+
+  const cancelBudgetEdit = () => {
+    setBudgetEditingId(null);
+    setTempBudget(0);
   };
 
   if (isLoading) {
@@ -197,11 +246,86 @@ const ProjectManagement = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge className={getStatusBadgeColor(project.status)}>
-                      {project.status}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge className={getStatusBadgeColor(project.status)}>
+                        {project.status}
+                      </Badge>
+                      <Select
+                        value={project.status}
+                        onValueChange={(value) => handleStatusChange(project.id, value)}
+                      >
+                        <SelectTrigger className="w-8 h-8 p-0 border-none shadow-none">
+                          <ChevronDown className="h-3 w-3" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </TableCell>
-                  <TableCell>${project.budget.toLocaleString()}</TableCell>
+                  <TableCell>
+                    {budgetEditingId === project.id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={tempBudget}
+                          onChange={(e) => setTempBudget(Number(e.target.value))}
+                          className="w-24 h-8"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveBudgetEdit(project.id);
+                            if (e.key === 'Escape') cancelBudgetEdit();
+                          }}
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={() => saveBudgetEdit(project.id)}
+                        >
+                          ✓
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={cancelBudgetEdit}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <span 
+                          className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                          onClick={() => startBudgetEdit(project.id, project.budget)}
+                        >
+                          ${project.budget.toLocaleString()}
+                        </span>
+                        <div className="flex flex-col">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-4 w-4 p-0"
+                            onClick={() => handleBudgetAdjustment(project.id, 1000)}
+                          >
+                            <Plus className="h-2 w-2" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-4 w-4 p-0"
+                            onClick={() => handleBudgetAdjustment(project.id, -1000)}
+                          >
+                            <Minus className="h-2 w-2" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell>{new Date(project.deadline).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <DropdownMenu>
