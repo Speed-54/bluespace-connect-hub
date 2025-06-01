@@ -1,4 +1,3 @@
-
 import { apiService } from './api';
 
 export interface Project {
@@ -20,6 +19,7 @@ export interface Project {
     skills: string[];
   }>;
   budget: number;
+  spent?: number;
   deadline: string;
   createdAt: string;
   updatedAt: string;
@@ -73,6 +73,7 @@ class ProjectService {
           }
         ],
         budget: 15000,
+        spent: 9750,
         deadline: '2024-08-15',
         createdAt: '2024-06-01',
         updatedAt: '2024-06-15',
@@ -96,6 +97,7 @@ class ProjectService {
         },
         developers: [],
         budget: 8000,
+        spent: 2400,
         deadline: '2024-07-20',
         createdAt: '2024-05-15',
         updatedAt: '2024-06-10',
@@ -122,6 +124,7 @@ class ProjectService {
           }
         ],
         budget: 5000,
+        spent: 5000,
         deadline: '2024-05-30',
         createdAt: '2024-04-01',
         updatedAt: '2024-05-30',
@@ -151,7 +154,8 @@ class ProjectService {
       id: Date.now().toString(),
       createdAt: now,
       updatedAt: now,
-      progress: 0
+      progress: 0,
+      spent: 0
     };
     
     projects.push(newProject);
