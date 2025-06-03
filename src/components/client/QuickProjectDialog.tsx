@@ -38,7 +38,7 @@ const QuickProjectDialog = ({ isOpen, onClose, onSuccess }: QuickProjectDialogPr
     const projectData = {
       title: formData.title,
       description: formData.description,
-      status: 'draft' as const,
+      status: 'active' as const,
       client: {
         id: '1', // Current user ID
         name: 'John Smith',

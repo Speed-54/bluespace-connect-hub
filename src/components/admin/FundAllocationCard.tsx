@@ -35,14 +35,14 @@ const FundAllocationCard = ({ project }: FundAllocationCardProps) => {
     const newSpent = Math.max(0, spent + adjustment);
     updateProjectMutation.mutate({
       id: project.id,
-      updates: { spent: newSpent }
+      updateData: { spent: newSpent }
     });
   };
 
   const saveSpentEdit = () => {
     updateProjectMutation.mutate({
       id: project.id,
-      updates: { spent: tempSpent }
+      updateData: { spent: tempSpent }
     });
     setIsEditingSpent(false);
   };

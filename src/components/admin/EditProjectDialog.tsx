@@ -42,7 +42,7 @@ import { Project } from '@/services/projectService';
 const projectSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().min(1, 'Description is required'),
-  status: z.enum(['draft', 'active', 'completed', 'cancelled']),
+  status: z.enum(['active', 'completed', 'on-hold', 'cancelled']),
   budget: z.number().min(0, 'Budget must be positive'),
   deadline: z.date(),
 });
@@ -63,7 +63,7 @@ const EditProjectDialog = ({ open, onOpenChange, project }: EditProjectDialogPro
     defaultValues: {
       title: '',
       description: '',
-      status: 'draft',
+      status: 'active',
       budget: 0,
       deadline: new Date(),
     },
@@ -75,7 +75,7 @@ const EditProjectDialog = ({ open, onOpenChange, project }: EditProjectDialogPro
       form.reset({
         title: project.title,
         description: project.description,
-        status: project.status,
+        status: project.status as 'active' | 'completed' | 'on-hold' | 'cancelled',
         budget: project.budget,
         deadline: new Date(project.deadline),
       });
@@ -91,7 +91,7 @@ const EditProjectDialog = ({ open, onOpenChange, project }: EditProjectDialogPro
     };
 
     updateProjectMutation.mutate(
-      { id: project.id, updates: updateData },
+      { id: project.id, updateData },
       {
         onSuccess: () => {
           onOpenChange(false);
@@ -156,9 +156,9 @@ const EditProjectDialog = ({ open, onOpenChange, project }: EditProjectDialogPro
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="on-hold">On Hold</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>

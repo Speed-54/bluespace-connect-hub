@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,7 +66,7 @@ const ProjectManagement = () => {
       case 'active': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-blue-100 text-blue-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'draft': return 'bg-yellow-100 text-yellow-800';
+      case 'on-hold': return 'bg-yellow-100 text-yellow-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -90,7 +91,7 @@ const ProjectManagement = () => {
   const handleStatusChange = (projectId: string, newStatus: string) => {
     updateProjectMutation.mutate({
       id: projectId,
-      updates: { status: newStatus as 'draft' | 'active' | 'completed' | 'cancelled' }
+      updateData: { status: newStatus as 'active' | 'completed' | 'on-hold' | 'cancelled' }
     });
   };
 
@@ -100,7 +101,7 @@ const ProjectManagement = () => {
       const newBudget = Math.max(0, project.budget + adjustment);
       updateProjectMutation.mutate({
         id: projectId,
-        updates: { budget: newBudget }
+        updateData: { budget: newBudget }
       });
     }
   };
@@ -112,7 +113,7 @@ const ProjectManagement = () => {
       const newSpent = Math.max(0, currentSpent + adjustment);
       updateProjectMutation.mutate({
         id: projectId,
-        updates: { spent: newSpent }
+        updateData: { spent: newSpent }
       });
     }
   };
@@ -125,7 +126,7 @@ const ProjectManagement = () => {
   const saveBudgetEdit = (projectId: string) => {
     updateProjectMutation.mutate({
       id: projectId,
-      updates: { budget: tempBudget }
+      updateData: { budget: tempBudget }
     });
     setBudgetEditingId(null);
   };
@@ -143,7 +144,7 @@ const ProjectManagement = () => {
   const saveSpentEdit = (projectId: string) => {
     updateProjectMutation.mutate({
       id: projectId,
-      updates: { spent: tempSpent }
+      updateData: { spent: tempSpent }
     });
     setSpentEditingId(null);
   };
@@ -329,9 +330,9 @@ const ProjectManagement = () => {
                             <ChevronDown className="h-3 w-3" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="draft">Draft</SelectItem>
                             <SelectItem value="active">Active</SelectItem>
                             <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="on-hold">On Hold</SelectItem>
                             <SelectItem value="cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>

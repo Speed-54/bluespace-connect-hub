@@ -104,7 +104,7 @@ const MilestoneManager = ({ project, canEdit = false }: MilestoneManagerProps) =
     
     updateProjectMutation.mutate({
       id: project.id,
-      updates: { tasks }
+      updateData: { tasks }
     });
   };
 

@@ -32,6 +32,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    password: '',
     role: 'developer' as 'client' | 'developer' | 'admin',
     company: '',
     skills: '',
@@ -43,9 +44,10 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newUser: Omit<User, 'id'> = {
+    const newUser = {
       name: formData.name,
       email: formData.email,
+      password: formData.password,
       role: formData.role,
       ...(formData.company && { company: formData.company }),
       ...(formData.skills && { skills: formData.skills.split(',').map(s => s.trim()) }),
@@ -57,6 +59,7 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
       setFormData({
         name: '',
         email: '',
+        password: '',
         role: 'developer',
         company: '',
         skills: '',
@@ -92,6 +95,17 @@ const CreateUserDialog: React.FC<CreateUserDialogProps> = ({
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
           </div>

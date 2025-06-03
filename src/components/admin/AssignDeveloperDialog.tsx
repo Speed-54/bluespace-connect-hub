@@ -67,7 +67,7 @@ const AssignDeveloperDialog = ({ project, isOpen, onClose }: AssignDeveloperDial
 
     updateProjectMutation.mutate({
       id: project.id,
-      updates: { developers: assignedDevelopers }
+      updateData: { developers: assignedDevelopers }
     });
 
     onClose();

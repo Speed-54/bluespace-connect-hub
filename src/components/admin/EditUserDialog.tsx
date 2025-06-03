@@ -58,8 +58,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const updatedUser: User = {
-      ...user,
+    const updateData = {
       name: formData.name,
       email: formData.email,
       role: formData.role,
@@ -69,7 +68,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({
     };
 
     try {
-      await updateUserMutation.mutateAsync(updatedUser);
+      await updateUserMutation.mutateAsync({ id: user.id, updateData });
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to update user:', error);

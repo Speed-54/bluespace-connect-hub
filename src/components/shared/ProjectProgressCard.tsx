@@ -43,7 +43,7 @@ const ProjectProgressCard = ({ project, canEdit = false }: ProjectProgressCardPr
     const clampedProgress = Math.max(0, Math.min(100, tempProgress));
     updateProjectMutation.mutate({
       id: project.id,
-      updates: { progress: clampedProgress }
+      updateData: { progress: clampedProgress }
     });
     setIsEditing(false);
   };

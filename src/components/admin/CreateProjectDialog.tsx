@@ -36,7 +36,7 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
     budget: '',
     deadline: '',
     clientId: '',
-    status: 'draft' as 'draft' | 'active' | 'completed' | 'cancelled'
+    status: 'active' as 'active' | 'completed' | 'on-hold' | 'cancelled'
   });
 
   const createProjectMutation = useCreateProject();
@@ -72,7 +72,7 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
         budget: '',
         deadline: '',
         clientId: '',
-        status: 'draft'
+        status: 'active'
       });
       onOpenChange(false);
     } catch (error) {
@@ -160,9 +160,9 @@ const CreateProjectDialog: React.FC<CreateProjectDialogProps> = ({
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="on-hold">On Hold</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
