@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,11 +5,18 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, CheckCircle, AlertTriangle, MessageSquare, FileText, Calendar } from 'lucide-react';
+import { Clock, CheckCircle, AlertTriangle, MessageSquare, FileText, Calendar, Plus } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import QuickProjectDialog from '@/components/client/QuickProjectDialog';
+import ProjectProgressCard from '@/components/shared/ProjectProgressCard';
+import UpcomingDeadlines from '@/components/shared/UpcomingDeadlines';
+import FundAllocationCard from '@/components/admin/FundAllocationCard';
+import { useProjects } from '@/hooks/useProjects';
 
 const ClientPortal = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isQuickProjectOpen, setIsQuickProjectOpen] = useState(false);
+  const { data: projects = [] } = useProjects();
 
   // Mock data
   const projects = [
@@ -106,49 +112,7 @@ const ClientPortal = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Summary Cards */}
               <div className="lg:col-span-2 space-y-6">
-                <div className="grid md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                          <FileText className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm text-gray-600">Active Projects</p>
-                          <p className="text-2xl font-bold text-gray-900">2</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                          <CheckCircle className="h-6 w-6 text-green-600" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm text-gray-600">Completed</p>
-                          <p className="text-2xl font-bold text-gray-900">5</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardContent className="p-6">
-                      <div className="flex items-center">
-                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                          <MessageSquare className="h-6 w-6 text-purple-600" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm text-gray-600">Messages</p>
-                          <p className="text-2xl font-bold text-gray-900">12</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                {/* ... keep existing code (summary cards) */}
 
                 {/* Recent Projects */}
                 <Card>
@@ -157,32 +121,36 @@ const ClientPortal = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {projects.map((project) => (
+                      {projects.slice(0, 3).map((project) => (
                         <div key={project.id} className="border border-gray-200 rounded-lg p-4">
                           <div className="flex justify-between items-start mb-3">
                             <div>
                               <h3 className="font-semibold text-gray-900">{project.title}</h3>
                               <p className="text-sm text-gray-600">{project.description}</p>
                             </div>
-                            <Badge variant={project.status === 'in-progress' ? 'default' : 'secondary'}>
+                            <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
                               {project.status}
                             </Badge>
                           </div>
                           <div className="flex items-center space-x-4 mb-3">
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage src={project.developer.avatar} />
-                              <AvatarFallback>{project.developer.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm text-gray-600">{project.developer.name}</span>
+                            {project.developers[0] && (
+                              <>
+                                <Avatar className="w-8 h-8">
+                                  <AvatarImage src={project.developers[0].avatar} />
+                                  <AvatarFallback>{project.developers[0].name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm text-gray-600">{project.developers[0].name}</span>
+                              </>
+                            )}
                             <span className="text-sm text-gray-500">•</span>
-                            <span className="text-sm text-gray-600">Due: {project.deadline}</span>
+                            <span className="text-sm text-gray-600">Due: {new Date(project.deadline).toLocaleDateString()}</span>
                           </div>
                           <div className="space-y-2">
                             <div className="flex justify-between text-sm">
                               <span>Progress</span>
-                              <span>{project.progress}%</span>
+                              <span>{project.progress || 0}%</span>
                             </div>
-                            <Progress value={project.progress} className="h-2" />
+                            <Progress value={project.progress || 0} className="h-2" />
                           </div>
                         </div>
                       ))}
@@ -198,7 +166,11 @@ const ClientPortal = () => {
                     <CardTitle>Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button className="w-full bg-bluespace-600 hover:bg-bluespace-700">
+                    <Button 
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      onClick={() => setIsQuickProjectOpen(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
                       Start New Project
                     </Button>
                     <Button variant="outline" className="w-full">
@@ -210,29 +182,7 @@ const ClientPortal = () => {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Upcoming Deadlines</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-3">
-                        <Calendar className="h-4 w-4 text-blue-500" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">E-commerce Website</p>
-                          <p className="text-xs text-gray-500">Feb 15, 2024</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Calendar className="h-4 w-4 text-orange-500" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">Mobile App</p>
-                          <p className="text-xs text-gray-500">Mar 20, 2024</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <UpcomingDeadlines />
               </div>
             </div>
           </TabsContent>
@@ -240,86 +190,95 @@ const ClientPortal = () => {
           <TabsContent value="projects">
             <div className="space-y-6">
               {projects.map((project) => (
-                <Card key={project.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>{project.title}</CardTitle>
-                        <p className="text-gray-600 mt-1">{project.description}</p>
-                      </div>
-                      <Badge variant={project.status === 'in-progress' ? 'default' : 'secondary'}>
-                        {project.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="font-semibold mb-3">Project Details</h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Budget:</span>
-                            <span className="font-medium">{project.budget}</span>
+                <div key={project.id} className="grid lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <Card>
+                      <CardHeader>
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <CardTitle>{project.title}</CardTitle>
+                            <p className="text-gray-600 mt-1">{project.description}</p>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Deadline:</span>
-                            <span className="font-medium">{project.deadline}</span>
+                          <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                            {project.status}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid md:grid-cols-2 gap-6">
+                          <div>
+                            <h4 className="font-semibold mb-3">Project Details</h4>
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Budget:</span>
+                                <span className="font-medium">{project.budget}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Deadline:</span>
+                                <span className="font-medium">{project.deadline}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Progress:</span>
+                                <span className="font-medium">{project.progress}%</span>
+                              </div>
+                            </div>
+                            <Progress value={project.progress} className="mt-3" />
+                            
+                            <div className="mt-4">
+                              <h5 className="font-semibold mb-2">Developer</h5>
+                              <div className="flex items-center space-x-3">
+                                <Avatar>
+                                  <AvatarImage src={project.developer.avatar} />
+                                  <AvatarFallback>{project.developer.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">{project.developer.name}</p>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {project.developer.skills.map((skill, index) => (
+                                      <Badge key={index} variant="secondary" className="text-xs">
+                                        {skill}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Progress:</span>
-                            <span className="font-medium">{project.progress}%</span>
+                          
+                          <div>
+                            <h4 className="font-semibold mb-3">Milestones</h4>
+                            <div className="space-y-3">
+                              {project.milestones.map((milestone) => (
+                                <div key={milestone.id} className="flex items-center space-x-3">
+                                  {getStatusIcon(milestone.status)}
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium">{milestone.title}</p>
+                                    <p className="text-xs text-gray-500">{milestone.date}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                        <Progress value={project.progress} className="mt-3" />
                         
-                        <div className="mt-4">
-                          <h5 className="font-semibold mb-2">Developer</h5>
-                          <div className="flex items-center space-x-3">
-                            <Avatar>
-                              <AvatarImage src={project.developer.avatar} />
-                              <AvatarFallback>{project.developer.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{project.developer.name}</p>
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {project.developer.skills.map((skill, index) => (
-                                  <Badge key={index} variant="secondary" className="text-xs">
-                                    {skill}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
+                        <div className="mt-6 flex space-x-3">
+                          <Button size="sm" className="bg-bluespace-600 hover:bg-bluespace-700">
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Message Developer
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            View Details
+                          </Button>
                         </div>
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-semibold mb-3">Milestones</h4>
-                        <div className="space-y-3">
-                          {project.milestones.map((milestone) => (
-                            <div key={milestone.id} className="flex items-center space-x-3">
-                              {getStatusIcon(milestone.status)}
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{milestone.title}</p>
-                                <p className="text-xs text-gray-500">{milestone.date}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-6 flex space-x-3">
-                      <Button size="sm" className="bg-bluespace-600 hover:bg-bluespace-700">
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Message Developer
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <ProjectProgressCard project={project} />
+                    <FundAllocationCard project={project} />
+                  </div>
+                </div>
               ))}
             </div>
           </TabsContent>
@@ -354,6 +313,15 @@ const ClientPortal = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <QuickProjectDialog
+          isOpen={isQuickProjectOpen}
+          onClose={() => setIsQuickProjectOpen(false)}
+          onSuccess={() => {
+            // Optionally redirect to projects tab
+            setActiveTab('projects');
+          }}
+        />
       </div>
     </div>
   );

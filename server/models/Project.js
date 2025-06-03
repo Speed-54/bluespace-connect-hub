@@ -42,6 +42,11 @@ const projectSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  spent: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   deadline: {
     type: Date,
     required: true

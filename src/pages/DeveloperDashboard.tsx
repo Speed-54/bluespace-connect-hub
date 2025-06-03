@@ -23,9 +23,18 @@ import CommunicationHub from '@/components/developer/CommunicationHub';
 import LearningDevelopment from '@/components/developer/LearningDevelopment';
 import DeveloperCalendar from '@/components/developer/DeveloperCalendar';
 import DeveloperSettings from '@/components/developer/DeveloperSettings';
+import MilestoneManager from '@/components/developer/MilestoneManager';
+import ProjectProgressCard from '@/components/shared/ProjectProgressCard';
+import { useProjects } from '@/hooks/useProjects';
 
 const DeveloperDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const { data: projects = [] } = useProjects();
+
+  // Get projects assigned to current developer (mock developer ID: '2')
+  const assignedProjects = projects.filter(project => 
+    project.developers.some(dev => dev.id === '2')
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -78,7 +87,16 @@ const DeveloperDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview">
-            <DeveloperAnalytics />
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <DeveloperAnalytics />
+              </div>
+              <div className="space-y-6">
+                {assignedProjects.map(project => (
+                  <ProjectProgressCard key={project.id} project={project} canEdit />
+                ))}
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="notifications">
@@ -90,7 +108,12 @@ const DeveloperDashboard = () => {
           </TabsContent>
 
           <TabsContent value="projects">
-            <DeveloperProjects />
+            <div className="space-y-6">
+              <DeveloperProjects />
+              {assignedProjects.map(project => (
+                <MilestoneManager key={project.id} project={project} canEdit />
+              ))}
+            </div>
           </TabsContent>
 
           <TabsContent value="clients">

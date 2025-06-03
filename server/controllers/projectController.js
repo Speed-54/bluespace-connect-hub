@@ -24,6 +24,7 @@ const mockProjects = [
       }
     ],
     budget: 15000,
+    spent: 9750,
     deadline: '2024-08-15',
     createdAt: '2024-06-01',
     updatedAt: '2024-06-15',
@@ -42,6 +43,7 @@ const mockProjects = [
     },
     developers: [],
     budget: 8000,
+    spent: 2400,
     deadline: '2024-07-20',
     createdAt: '2024-05-15',
     updatedAt: '2024-06-10',
