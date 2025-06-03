@@ -18,51 +18,22 @@ const ClientPortal = () => {
   const [isQuickProjectOpen, setIsQuickProjectOpen] = useState(false);
   const { data: projects = [] } = useProjects();
 
-  // Mock data
-  const projects = [
-    {
-      id: 1,
-      title: 'E-commerce Website',
-      description: 'Modern React-based e-commerce platform with payment integration',
-      progress: 75,
-      status: 'in-progress',
-      deadline: '2024-02-15',
-      budget: '$5,000',
-      developer: {
-        name: 'Sarah Johnson',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
-        skills: ['React', 'Node.js', 'MongoDB']
-      },
-      milestones: [
-        { id: 1, title: 'Project Setup', status: 'completed', date: '2024-01-01' },
-        { id: 2, title: 'Frontend Development', status: 'completed', date: '2024-01-15' },
-        { id: 3, title: 'Backend API', status: 'in-progress', date: '2024-02-01' },
-        { id: 4, title: 'Payment Integration', status: 'pending', date: '2024-02-10' },
-        { id: 5, title: 'Testing & Deployment', status: 'pending', date: '2024-02-15' }
-      ]
-    },
-    {
-      id: 2,
-      title: 'Mobile App Development',
-      description: 'Cross-platform mobile app using React Native',
-      progress: 30,
-      status: 'in-progress',
-      deadline: '2024-03-20',
-      budget: '$8,000',
-      developer: {
-        name: 'David Ochieng',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=david',
-        skills: ['React Native', 'Firebase', 'TypeScript']
-      },
-      milestones: [
-        { id: 1, title: 'App Architecture', status: 'completed', date: '2024-01-10' },
-        { id: 2, title: 'UI/UX Design', status: 'in-progress', date: '2024-01-25' },
-        { id: 3, title: 'Core Features', status: 'pending', date: '2024-02-15' },
-        { id: 4, title: 'Testing', status: 'pending', date: '2024-03-10' },
-        { id: 5, title: 'App Store Deployment', status: 'pending', date: '2024-03-20' }
-      ]
-    }
+  // Mock milestones data to extend project structure
+  const mockMilestones = [
+    { id: '1', title: 'Project Setup', status: 'completed', date: '2024-01-01' },
+    { id: '2', title: 'Frontend Development', status: 'completed', date: '2024-01-15' },
+    { id: '3', title: 'Backend API', status: 'in-progress', date: '2024-02-01' },
+    { id: '4', title: 'Payment Integration', status: 'pending', date: '2024-02-10' },
+    { id: '5', title: 'Testing & Deployment', status: 'pending', date: '2024-02-15' }
   ];
+
+  // Extend projects with milestone data for display
+  const projectsWithMilestones = projects.map(project => ({
+    ...project,
+    milestones: mockMilestones,
+    // Ensure we have developer info for display
+    primaryDeveloper: project.developers[0] || null
+  }));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -112,7 +83,32 @@ const ClientPortal = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Summary Cards */}
               <div className="lg:col-span-2 space-y-6">
-                {/* ... keep existing code (summary cards) */}
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Project Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="font-semibold text-lg">Total Projects</h3>
+                        <p className="text-gray-600">12</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">Active Projects</h3>
+                        <p className="text-gray-600">7</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">Completed Projects</h3>
+                        <p className="text-gray-600">5</p>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg">Pending Tasks</h3>
+                        <p className="text-gray-600">23</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {/* Recent Projects */}
                 <Card>
@@ -189,7 +185,7 @@ const ClientPortal = () => {
 
           <TabsContent value="projects">
             <div className="space-y-6">
-              {projects.map((project) => (
+              {projectsWithMilestones.map((project) => (
                 <div key={project.id} className="grid lg:grid-cols-3 gap-6">
                   <div className="lg:col-span-2">
                     <Card>
@@ -211,38 +207,40 @@ const ClientPortal = () => {
                             <div className="space-y-2 text-sm">
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Budget:</span>
-                                <span className="font-medium">{project.budget}</span>
+                                <span className="font-medium">${project.budget.toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Deadline:</span>
-                                <span className="font-medium">{project.deadline}</span>
+                                <span className="font-medium">{new Date(project.deadline).toLocaleDateString()}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-gray-600">Progress:</span>
-                                <span className="font-medium">{project.progress}%</span>
+                                <span className="font-medium">{project.progress || 0}%</span>
                               </div>
                             </div>
-                            <Progress value={project.progress} className="mt-3" />
+                            <Progress value={project.progress || 0} className="mt-3" />
                             
-                            <div className="mt-4">
-                              <h5 className="font-semibold mb-2">Developer</h5>
-                              <div className="flex items-center space-x-3">
-                                <Avatar>
-                                  <AvatarImage src={project.developer.avatar} />
-                                  <AvatarFallback>{project.developer.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium">{project.developer.name}</p>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {project.developer.skills.map((skill, index) => (
-                                      <Badge key={index} variant="secondary" className="text-xs">
-                                        {skill}
-                                      </Badge>
-                                    ))}
+                            {project.primaryDeveloper && (
+                              <div className="mt-4">
+                                <h5 className="font-semibold mb-2">Developer</h5>
+                                <div className="flex items-center space-x-3">
+                                  <Avatar>
+                                    <AvatarImage src={project.primaryDeveloper.avatar} />
+                                    <AvatarFallback>{project.primaryDeveloper.name.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-medium">{project.primaryDeveloper.name}</p>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {project.primaryDeveloper.skills.map((skill, index) => (
+                                        <Badge key={index} variant="secondary" className="text-xs">
+                                          {skill}
+                                        </Badge>
+                                      ))}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                           
                           <div>
