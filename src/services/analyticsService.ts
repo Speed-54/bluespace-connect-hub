@@ -1,145 +1,134 @@
 
-import { apiService } from './api';
-import { projectService } from './projectService';
-import { userService } from './userService';
+import { apiClient } from './apiClient';
 
-export interface DashboardStats {
+interface DashboardStats {
+  totalUsers: number;
   totalProjects: number;
   activeProjects: number;
-  completedProjects: number;
-  totalUsers: number;
-  totalClients: number;
-  totalDevelopers: number;
   totalRevenue: number;
-  monthlyRevenue: number;
+  newUsersThisMonth: number;
+  projectsCompletedThisMonth: number;
+  averageProjectValue: number;
+  userGrowthRate: number;
 }
 
-export interface ProjectAnalytics {
-  projectsOverTime: Array<{
+interface ProjectAnalytics {
+  totalProjects: number;
+  projectsByStatus: {
+    active: number;
+    completed: number;
+    onHold: number;
+    cancelled: number;
+  };
+  projectsByMonth: Array<{
     month: string;
-    projects: number;
-    revenue: number;
-  }>;
-  statusDistribution: Array<{
-    status: string;
     count: number;
-    percentage: number;
-  }>;
-  revenueByClient: Array<{
-    client: string;
     revenue: number;
   }>;
+  averageProjectDuration: number;
+  completionRate: number;
+  topClients: Array<{
+    id: string;
+    name: string;
+    projectCount: number;
+    totalSpent: number;
+  }>;
 }
 
-class AnalyticsService {
-  async getDashboardStats(): Promise<DashboardStats> {
-    await apiService.get('/analytics/dashboard');
-    
-    const projects = await projectService.getAllProjects();
-    const users = await userService.getAllUsers();
-    
-    const activeProjects = projects.filter(p => p.status === 'active').length;
-    const completedProjects = projects.filter(p => p.status === 'completed').length;
-    const clients = users.filter(u => u.role === 'client').length;
-    const developers = users.filter(u => u.role === 'developer').length;
-    
-    const totalRevenue = projects
-      .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + p.budget, 0);
-    
-    const currentMonth = new Date().getMonth();
-    const monthlyRevenue = projects
-      .filter(p => {
-        const projectMonth = new Date(p.updatedAt).getMonth();
-        return p.status === 'completed' && projectMonth === currentMonth;
-      })
-      .reduce((sum, p) => sum + p.budget, 0);
+interface UserAnalytics {
+  totalUsers: number;
+  usersByRole: {
+    clients: number;
+    developers: number;
+    admins: number;
+  };
+  usersByMonth: Array<{
+    month: string;
+    count: number;
+  }>;
+  activeUsers: number;
+  userRetentionRate: number;
+  topDevelopers: Array<{
+    id: string;
+    name: string;
+    projectCount: number;
+    rating: number;
+    skills: string[];
+  }>;
+}
 
-    const stats: DashboardStats = {
-      totalProjects: projects.length,
-      activeProjects,
-      completedProjects,
-      totalUsers: users.length,
-      totalClients: clients,
-      totalDevelopers: developers,
-      totalRevenue,
-      monthlyRevenue
-    };
-
-    console.log('Dashboard stats:', stats);
-    return stats;
-  }
-
-  async getProjectAnalytics(): Promise<ProjectAnalytics> {
-    await apiService.get('/analytics/projects');
-    
-    const projects = await projectService.getAllProjects();
-    
-    // Generate monthly data for the last 6 months
-    const projectsOverTime = this.generateMonthlyData(projects);
-    
-    // Status distribution
-    const statusCounts = projects.reduce((acc, project) => {
-      acc[project.status] = (acc[project.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const statusDistribution = Object.entries(statusCounts).map(([status, count]) => ({
-      status,
-      count,
-      percentage: Math.round((count / projects.length) * 100)
-    }));
-
-    // Revenue by client
-    const clientRevenue = projects.reduce((acc, project) => {
-      if (project.status === 'completed') {
-        acc[project.client.name] = (acc[project.client.name] || 0) + project.budget;
+export class AnalyticsService {
+  // GET /api/analytics/dashboard
+  static async getDashboardStats(): Promise<DashboardStats> {
+    try {
+      const response = await apiClient.get<DashboardStats>('/analytics/dashboard');
+      if (response.success && response.data) {
+        return response.data;
       }
-      return acc;
-    }, {} as Record<string, number>);
-
-    const revenueByClient = Object.entries(clientRevenue)
-      .map(([client, revenue]) => ({ client, revenue }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10); // Top 10 clients
-
-    const analytics: ProjectAnalytics = {
-      projectsOverTime,
-      statusDistribution,
-      revenueByClient
-    };
-
-    console.log('Project analytics:', analytics);
-    return analytics;
+      throw new Error(response.message || 'Failed to fetch dashboard stats');
+    } catch (error) {
+      console.error('Get dashboard stats error:', error);
+      throw error;
+    }
   }
 
-  private generateMonthlyData(projects: any[]) {
-    const months = [];
-    const now = new Date();
-    
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-      
-      const monthProjects = projects.filter(p => {
-        const projectDate = new Date(p.createdAt);
-        return projectDate.getMonth() === date.getMonth() && 
-               projectDate.getFullYear() === date.getFullYear();
-      });
+  // GET /api/analytics/projects
+  static async getProjectAnalytics(params?: {
+    startDate?: string;
+    endDate?: string;
+    clientId?: string;
+  }): Promise<ProjectAnalytics> {
+    try {
+      let endpoint = '/analytics/projects';
+      if (params) {
+        const searchParams = new URLSearchParams();
+        if (params.startDate) searchParams.append('startDate', params.startDate);
+        if (params.endDate) searchParams.append('endDate', params.endDate);
+        if (params.clientId) searchParams.append('clientId', params.clientId);
+        
+        if (searchParams.toString()) {
+          endpoint += `?${searchParams.toString()}`;
+        }
+      }
 
-      const monthRevenue = monthProjects
-        .filter(p => p.status === 'completed')
-        .reduce((sum, p) => sum + p.budget, 0);
-
-      months.push({
-        month: monthName,
-        projects: monthProjects.length,
-        revenue: monthRevenue
-      });
+      const response = await apiClient.get<ProjectAnalytics>(endpoint);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Failed to fetch project analytics');
+    } catch (error) {
+      console.error('Get project analytics error:', error);
+      throw error;
     }
-    
-    return months;
+  }
+
+  // GET /api/analytics/users
+  static async getUserAnalytics(params?: {
+    startDate?: string;
+    endDate?: string;
+    role?: 'client' | 'developer' | 'admin';
+  }): Promise<UserAnalytics> {
+    try {
+      let endpoint = '/analytics/users';
+      if (params) {
+        const searchParams = new URLSearchParams();
+        if (params.startDate) searchParams.append('startDate', params.startDate);
+        if (params.endDate) searchParams.append('endDate', params.endDate);
+        if (params.role) searchParams.append('role', params.role);
+        
+        if (searchParams.toString()) {
+          endpoint += `?${searchParams.toString()}`;
+        }
+      }
+
+      const response = await apiClient.get<UserAnalytics>(endpoint);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Failed to fetch user analytics');
+    } catch (error) {
+      console.error('Get user analytics error:', error);
+      throw error;
+    }
   }
 }
-
-export const analyticsService = new AnalyticsService();

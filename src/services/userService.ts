@@ -1,131 +1,101 @@
 
+import { apiClient } from './apiClient';
 import { User } from '@/hooks/useAuth';
-import { apiService } from './api';
 
-interface CreateUserRequest extends Omit<User, 'id'> {
-  password?: string;
+interface CreateUserRequest {
+  name: string;
+  email: string;
+  password: string;
+  role: 'client' | 'developer' | 'admin';
+  company?: string;
+  skills?: string[];
+  bio?: string;
 }
 
-interface UpdateUserRequest extends Partial<User> {
-  id: string;
+interface UpdateUserRequest {
+  name?: string;
+  email?: string;
+  company?: string;
+  skills?: string[];
+  bio?: string;
+  isActive?: boolean;
 }
 
-class UserService {
-  private storageKey = 'users';
-
-  private getUsers(): User[] {
+export class UserService {
+  // GET /api/users
+  static async getAllUsers(): Promise<User[]> {
     try {
-      const stored = localStorage.getItem(`bluespace_${this.storageKey}`);
-      return stored ? JSON.parse(stored) : this.getDefaultUsers();
-    } catch {
-      return this.getDefaultUsers();
+      const response = await apiClient.get<User[]>('/users');
+      return response.data || [];
+    } catch (error) {
+      console.error('Get users error:', error);
+      throw error;
     }
   }
 
-  private saveUsers(users: User[]): void {
-    localStorage.setItem(`bluespace_${this.storageKey}`, JSON.stringify(users));
-  }
-
-  private getDefaultUsers(): User[] {
-    return [
-      {
-        id: '1',
-        name: 'John Smith',
-        email: 'john@techsolutions.com',
-        role: 'client',
-        company: 'Tech Solutions Inc.',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john'
-      },
-      {
-        id: '2',
-        name: 'Jane Developer',
-        email: 'jane@dev.com',
-        role: 'developer',
-        skills: ['React', 'Node.js', 'TypeScript', 'Python'],
-        bio: 'Full-stack developer with 5+ years experience in modern web technologies',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jane'
-      },
-      {
-        id: '3',
-        name: 'Sarah Wilson',
-        email: 'sarah@innovationlabs.com',
-        role: 'client',
-        company: 'Innovation Labs',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah'
-      },
-      {
-        id: '4',
-        name: 'Admin User',
-        email: 'admin@bluespace.tech',
-        role: 'admin',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin'
+  // GET /api/users/:id
+  static async getUserById(id: string): Promise<User> {
+    try {
+      const response = await apiClient.get<User>(`/users/${id}`);
+      if (response.success && response.data) {
+        return response.data;
       }
-    ];
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    await apiService.get('/users');
-    const users = this.getUsers();
-    console.log('Retrieved users:', users);
-    return users;
-  }
-
-  async getUserById(id: string): Promise<User | null> {
-    await apiService.get(`/users/${id}`);
-    const users = this.getUsers();
-    return users.find(user => user.id === id) || null;
-  }
-
-  async createUser(userData: CreateUserRequest): Promise<User> {
-    const users = this.getUsers();
-    const newUser: User = {
-      ...userData,
-      id: Date.now().toString(),
-      avatar: userData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email}`
-    };
-    
-    users.push(newUser);
-    this.saveUsers(users);
-    
-    await apiService.post('/users', newUser);
-    console.log('Created user:', newUser);
-    return newUser;
-  }
-
-  async updateUser(userData: UpdateUserRequest): Promise<User> {
-    const users = this.getUsers();
-    const index = users.findIndex(user => user.id === userData.id);
-    
-    if (index === -1) {
-      throw new Error('User not found');
+      throw new Error(response.message || 'User not found');
+    } catch (error) {
+      console.error('Get user error:', error);
+      throw error;
     }
-    
-    users[index] = { ...users[index], ...userData };
-    this.saveUsers(users);
-    
-    await apiService.put(`/users/${userData.id}`, users[index]);
-    console.log('Updated user:', users[index]);
-    return users[index];
   }
 
-  async deleteUser(id: string): Promise<boolean> {
-    const users = this.getUsers();
-    const filteredUsers = users.filter(user => user.id !== id);
-    
-    if (filteredUsers.length === users.length) {
-      throw new Error('User not found');
+  // POST /api/users
+  static async createUser(userData: CreateUserRequest): Promise<User> {
+    try {
+      const response = await apiClient.post<User>('/users', userData);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'User creation failed');
+    } catch (error) {
+      console.error('Create user error:', error);
+      throw error;
     }
-    
-    this.saveUsers(filteredUsers);
-    await apiService.delete(`/users/${id}`);
-    console.log('Deleted user with id:', id);
-    return true;
   }
 
-  async getUsersByRole(role: 'client' | 'developer' | 'admin'): Promise<User[]> {
-    const users = this.getUsers();
-    return users.filter(user => user.role === role);
+  // PUT /api/users/:id
+  static async updateUser(id: string, updateData: UpdateUserRequest): Promise<User> {
+    try {
+      const response = await apiClient.put<User>(`/users/${id}`, updateData);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'User update failed');
+    } catch (error) {
+      console.error('Update user error:', error);
+      throw error;
+    }
+  }
+
+  // DELETE /api/users/:id
+  static async deleteUser(id: string): Promise<void> {
+    try {
+      const response = await apiClient.delete(`/users/${id}`);
+      if (!response.success) {
+        throw new Error(response.message || 'User deletion failed');
+      }
+    } catch (error) {
+      console.error('Delete user error:', error);
+      throw error;
+    }
+  }
+
+  // GET /api/users/role/:role
+  static async getUsersByRole(role: 'client' | 'developer' | 'admin'): Promise<User[]> {
+    try {
+      const response = await apiClient.get<User[]>(`/users/role/${role}`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Get users by role error:', error);
+      throw error;
+    }
   }
 }
-
-export const userService = new UserService();

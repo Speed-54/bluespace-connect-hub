@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { AuthService } from '@/services/authService';
 
 export interface User {
   id: string;
@@ -36,19 +37,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Check for stored user session
-    const storedUser = localStorage.getItem('bluespace_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const storedUser = AuthService.getCurrentUser();
+    if (storedUser && AuthService.isAuthenticated()) {
+      setUser(storedUser);
     }
   }, []);
 
   const login = async (email: string, password: string, role: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Simulate API call
+      // **BACKEND CONNECTION POINT**
+      // Replace this mock implementation with actual API call
+      const response = await AuthService.login({ email, password, role });
+      
+      setUser(response.user);
+      localStorage.setItem('bluespace_user', JSON.stringify(response.user));
+      return true;
+
+      // TODO: Remove mock implementation below once backend is connected
+      /*
+      // Mock implementation for development
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Mock user data based on role
       const mockUser: User = {
         id: '1',
         name: role === 'client' ? 'John Client' : role === 'admin' ? 'Admin User' : 'Jane Developer',
@@ -63,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(mockUser);
       localStorage.setItem('bluespace_user', JSON.stringify(mockUser));
       return true;
+      */
     } catch (error) {
       console.error('Login error:', error);
       return false;
@@ -74,7 +85,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const register = async (userData: Partial<User> & { password: string }): Promise<boolean> => {
     setIsLoading(true);
     try {
-      // Simulate API call
+      // **BACKEND CONNECTION POINT**
+      // Replace this mock implementation with actual API call
+      const response = await AuthService.register({
+        name: userData.name || '',
+        email: userData.email || '',
+        password: userData.password,
+        role: userData.role || 'developer',
+        company: userData.company,
+        skills: userData.skills,
+        bio: userData.bio
+      });
+
+      setUser(response.user);
+      localStorage.setItem('bluespace_user', JSON.stringify(response.user));
+      return true;
+
+      // TODO: Remove mock implementation below once backend is connected
+      /*
+      // Mock implementation for development
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const newUser: User = {
@@ -91,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(newUser);
       localStorage.setItem('bluespace_user', JSON.stringify(newUser));
       return true;
+      */
     } catch (error) {
       console.error('Registration error:', error);
       return false;
@@ -100,8 +130,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    AuthService.logout();
     setUser(null);
-    localStorage.removeItem('bluespace_user');
   };
 
   return (

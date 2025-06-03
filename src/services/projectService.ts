@@ -1,21 +1,22 @@
-import { apiService } from './api';
+
+import { apiClient } from './apiClient';
 
 export interface Project {
   id: string;
   title: string;
   description: string;
-  status: 'draft' | 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'completed' | 'on-hold' | 'cancelled';
   client: {
     id: string;
     name: string;
     email: string;
-    avatar: string;
+    avatar?: string;
   };
   developers: Array<{
     id: string;
     name: string;
     email: string;
-    avatar: string;
+    avatar?: string;
     skills: string[];
   }>;
   budget: number;
@@ -24,221 +25,187 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   progress?: number;
-  tasks?: Array<{
+  tasks?: any[];
+}
+
+interface CreateProjectRequest {
+  title: string;
+  description: string;
+  budget: number;
+  deadline: string;
+  client: {
     id: string;
-    title: string;
-    completed: boolean;
-    assignedTo?: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  status?: 'active' | 'completed' | 'on-hold' | 'cancelled';
+  developers?: Array<{
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+    skills: string[];
   }>;
 }
 
-interface CreateProjectRequest extends Omit<Project, 'id' | 'createdAt' | 'updatedAt'> {}
-
-class ProjectService {
-  private storageKey = 'projects';
-
-  private getProjects(): Project[] {
-    try {
-      const stored = localStorage.getItem(`bluespace_${this.storageKey}`);
-      return stored ? JSON.parse(stored) : this.getDefaultProjects();
-    } catch {
-      return this.getDefaultProjects();
-    }
-  }
-
-  private saveProjects(projects: Project[]): void {
-    localStorage.setItem(`bluespace_${this.storageKey}`, JSON.stringify(projects));
-  }
-
-  private getDefaultProjects(): Project[] {
-    return [
-      {
-        id: '1',
-        title: 'E-commerce Platform',
-        description: 'Modern e-commerce platform with React and Node.js',
-        status: 'active',
-        client: {
-          id: '1',
-          name: 'John Smith',
-          email: 'john@techsolutions.com',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john'
-        },
-        developers: [
-          {
-            id: '2',
-            name: 'Jane Developer',
-            email: 'jane@dev.com',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jane',
-            skills: ['React', 'Node.js', 'TypeScript']
-          }
-        ],
-        budget: 15000,
-        spent: 9750,
-        deadline: '2024-08-15',
-        createdAt: '2024-06-01',
-        updatedAt: '2024-06-15',
-        progress: 65,
-        tasks: [
-          { id: '1', title: 'Setup project structure', completed: true },
-          { id: '2', title: 'Design database schema', completed: true },
-          { id: '3', title: 'Implement authentication', completed: false, assignedTo: '2' }
-        ]
-      },
-      {
-        id: '2',
-        title: 'Mobile App MVP',
-        description: 'Cross-platform mobile application using React Native',
-        status: 'active',
-        client: {
-          id: '3',
-          name: 'Sarah Wilson',
-          email: 'sarah@innovationlabs.com',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah'
-        },
-        developers: [],
-        budget: 8000,
-        spent: 2400,
-        deadline: '2024-07-20',
-        createdAt: '2024-05-15',
-        updatedAt: '2024-06-10',
-        progress: 30
-      },
-      {
-        id: '3',
-        title: 'Website Redesign',
-        description: 'Complete redesign of corporate website',
-        status: 'completed',
-        client: {
-          id: '1',
-          name: 'John Smith',
-          email: 'john@techsolutions.com',
-          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=john'
-        },
-        developers: [
-          {
-            id: '2',
-            name: 'Jane Developer',
-            email: 'jane@dev.com',
-            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jane',
-            skills: ['React', 'Node.js', 'TypeScript']
-          }
-        ],
-        budget: 5000,
-        spent: 5000,
-        deadline: '2024-05-30',
-        createdAt: '2024-04-01',
-        updatedAt: '2024-05-30',
-        progress: 100
-      }
-    ];
-  }
-
-  async getAllProjects(): Promise<Project[]> {
-    await apiService.get('/projects');
-    const projects = this.getProjects();
-    console.log('Retrieved projects:', projects);
-    return projects;
-  }
-
-  async getProjectById(id: string): Promise<Project | null> {
-    await apiService.get(`/projects/${id}`);
-    const projects = this.getProjects();
-    return projects.find(project => project.id === id) || null;
-  }
-
-  async createProject(projectData: CreateProjectRequest): Promise<Project> {
-    const projects = this.getProjects();
-    const now = new Date().toISOString();
-    const newProject: Project = {
-      ...projectData,
-      id: Date.now().toString(),
-      createdAt: now,
-      updatedAt: now,
-      progress: 0,
-      spent: 0
-    };
-    
-    projects.push(newProject);
-    this.saveProjects(projects);
-    
-    await apiService.post('/projects', newProject);
-    console.log('Created project:', newProject);
-    return newProject;
-  }
-
-  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
-    const projects = this.getProjects();
-    const index = projects.findIndex(project => project.id === id);
-    
-    if (index === -1) {
-      throw new Error('Project not found');
-    }
-    
-    projects[index] = { 
-      ...projects[index], 
-      ...updates, 
-      updatedAt: new Date().toISOString() 
-    };
-    this.saveProjects(projects);
-    
-    await apiService.put(`/projects/${id}`, projects[index]);
-    console.log('Updated project:', projects[index]);
-    return projects[index];
-  }
-
-  async deleteProject(id: string): Promise<boolean> {
-    const projects = this.getProjects();
-    const filteredProjects = projects.filter(project => project.id !== id);
-    
-    if (filteredProjects.length === projects.length) {
-      throw new Error('Project not found');
-    }
-    
-    this.saveProjects(filteredProjects);
-    await apiService.delete(`/projects/${id}`);
-    console.log('Deleted project with id:', id);
-    return true;
-  }
-
-  async getProjectsByClient(clientId: string): Promise<Project[]> {
-    const projects = this.getProjects();
-    return projects.filter(project => project.client.id === clientId);
-  }
-
-  async getProjectsByDeveloper(developerId: string): Promise<Project[]> {
-    const projects = this.getProjects();
-    return projects.filter(project => 
-      project.developers.some(dev => dev.id === developerId)
-    );
-  }
-
-  async assignDeveloperToProject(projectId: string, developerId: string): Promise<Project> {
-    // This would typically fetch developer details from userService
-    // For now, we'll use mock data
-    const mockDeveloper = {
-      id: developerId,
-      name: 'Developer Name',
-      email: 'dev@example.com',
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${developerId}`,
-      skills: ['React', 'TypeScript']
-    };
-
-    const projects = this.getProjects();
-    const project = projects.find(p => p.id === projectId);
-    
-    if (!project) {
-      throw new Error('Project not found');
-    }
-
-    if (!project.developers.some(dev => dev.id === developerId)) {
-      project.developers.push(mockDeveloper);
-      project.updatedAt = new Date().toISOString();
-      this.saveProjects(projects);
-    }
-
-    await apiService.put(`/projects/${projectId}/developers`, project);
-    return project;
-  }
+interface UpdateProjectRequest {
+  title?: string;
+  description?: string;
+  status?: 'active' | 'completed' | 'on-hold' | 'cancelled';
+  budget?: number;
+  deadline?: string;
+  progress?: number;
+  tasks?: any[];
 }
 
-export const projectService = new ProjectService();
+interface AssignDeveloperRequest {
+  developerId: string;
+  role?: string;
+  hourlyRate?: number;
+}
+
+export class ProjectService {
+  // GET /api/projects
+  static async getAllProjects(filters?: {
+    status?: string;
+    clientId?: string;
+    developerId?: string;
+  }): Promise<Project[]> {
+    try {
+      let endpoint = '/projects';
+      if (filters) {
+        const params = new URLSearchParams();
+        if (filters.status) params.append('status', filters.status);
+        if (filters.clientId) params.append('clientId', filters.clientId);
+        if (filters.developerId) params.append('developerId', filters.developerId);
+        
+        if (params.toString()) {
+          endpoint += `?${params.toString()}`;
+        }
+      }
+
+      const response = await apiClient.get<Project[]>(endpoint);
+      return response.data || [];
+    } catch (error) {
+      console.error('Get projects error:', error);
+      throw error;
+    }
+  }
+
+  // GET /api/projects/:id
+  static async getProjectById(id: string): Promise<Project> {
+    try {
+      const response = await apiClient.get<Project>(`/projects/${id}`);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Project not found');
+    } catch (error) {
+      console.error('Get project error:', error);
+      throw error;
+    }
+  }
+
+  // POST /api/projects
+  static async createProject(projectData: CreateProjectRequest): Promise<Project> {
+    try {
+      const response = await apiClient.post<Project>('/projects', projectData);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Project creation failed');
+    } catch (error) {
+      console.error('Create project error:', error);
+      throw error;
+    }
+  }
+
+  // PUT /api/projects/:id
+  static async updateProject(id: string, updateData: UpdateProjectRequest): Promise<Project> {
+    try {
+      const response = await apiClient.put<Project>(`/projects/${id}`, updateData);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Project update failed');
+    } catch (error) {
+      console.error('Update project error:', error);
+      throw error;
+    }
+  }
+
+  // DELETE /api/projects/:id
+  static async deleteProject(id: string): Promise<void> {
+    try {
+      const response = await apiClient.delete(`/projects/${id}`);
+      if (!response.success) {
+        throw new Error(response.message || 'Project deletion failed');
+      }
+    } catch (error) {
+      console.error('Delete project error:', error);
+      throw error;
+    }
+  }
+
+  // POST /api/projects/:id/assign-developer (Admin functionality)
+  static async assignDeveloperToProject(
+    projectId: string, 
+    assignData: AssignDeveloperRequest
+  ): Promise<Project> {
+    try {
+      const response = await apiClient.post<Project>(
+        `/projects/${projectId}/assign-developer`, 
+        assignData
+      );
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Developer assignment failed');
+    } catch (error) {
+      console.error('Assign developer error:', error);
+      throw error;
+    }
+  }
+
+  // DELETE /api/projects/:id/remove-developer/:developerId (Admin functionality)
+  static async removeDeveloperFromProject(
+    projectId: string, 
+    developerId: string
+  ): Promise<Project> {
+    try {
+      const response = await apiClient.delete<Project>(
+        `/projects/${projectId}/remove-developer/${developerId}`
+      );
+      if (response.success && response.data) {
+        return response.data;
+      }
+      throw new Error(response.message || 'Developer removal failed');
+    } catch (error) {
+      console.error('Remove developer error:', error);
+      throw error;
+    }
+  }
+
+  // GET /api/projects/client/:clientId
+  static async getProjectsByClient(clientId: string): Promise<Project[]> {
+    try {
+      const response = await apiClient.get<Project[]>(`/projects/client/${clientId}`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Get client projects error:', error);
+      throw error;
+    }
+  }
+
+  // GET /api/projects/developer/:developerId
+  static async getProjectsByDeveloper(developerId: string): Promise<Project[]> {
+    try {
+      const response = await apiClient.get<Project[]>(`/projects/developer/${developerId}`);
+      return response.data || [];
+    } catch (error) {
+      console.error('Get developer projects error:', error);
+      throw error;
+    }
+  }
+}

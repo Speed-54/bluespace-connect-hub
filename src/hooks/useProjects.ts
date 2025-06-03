@@ -1,43 +1,54 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { projectService, Project } from '@/services/projectService';
-import { toast } from '@/hooks/use-toast';
+import { ProjectService, Project } from '@/services/projectService';
 
-export const useProjects = () => {
+// Query hooks for fetching data
+export const useProjects = (filters?: {
+  status?: string;
+  clientId?: string;
+  developerId?: string;
+}) => {
   return useQuery({
-    queryKey: ['projects'],
-    queryFn: () => projectService.getAllProjects(),
+    queryKey: ['projects', filters],
+    queryFn: () => ProjectService.getAllProjects(filters),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
 
 export const useProject = (id: string) => {
   return useQuery({
-    queryKey: ['projects', id],
-    queryFn: () => projectService.getProjectById(id),
+    queryKey: ['project', id],
+    queryFn: () => ProjectService.getProjectById(id),
     enabled: !!id,
   });
 };
 
+export const useProjectsByClient = (clientId: string) => {
+  return useQuery({
+    queryKey: ['projects', 'client', clientId],
+    queryFn: () => ProjectService.getProjectsByClient(clientId),
+    enabled: !!clientId,
+  });
+};
+
+export const useProjectsByDeveloper = (developerId: string) => {
+  return useQuery({
+    queryKey: ['projects', 'developer', developerId],
+    queryFn: () => ProjectService.getProjectsByDeveloper(developerId),
+    enabled: !!developerId,
+  });
+};
+
+// Mutation hooks for modifying data
 export const useCreateProject = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (projectData: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) =>
-      projectService.createProject(projectData),
+    mutationFn: ProjectService.createProject,
     onSuccess: () => {
+      // **BACKEND CONNECTION POINT**
+      // Invalidate and refetch project queries after successful creation
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({
-        title: 'Success',
-        description: 'Project created successfully',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to create project',
-        variant: 'destructive',
-      });
     },
   });
 };
@@ -46,21 +57,13 @@ export const useUpdateProject = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Project> }) =>
-      projectService.updateProject(id, updates),
-    onSuccess: () => {
+    mutationFn: ({ id, updateData }: { id: string; updateData: any }) =>
+      ProjectService.updateProject(id, updateData),
+    onSuccess: (data, variables) => {
+      // **BACKEND CONNECTION POINT**
+      // Update the specific project in cache and invalidate related queries
+      queryClient.setQueryData(['project', variables.id], data);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({
-        title: 'Success',
-        description: 'Project updated successfully',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to update project',
-        variant: 'destructive',
-      });
     },
   });
 };
@@ -69,36 +72,41 @@ export const useDeleteProject = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: (id: string) => projectService.deleteProject(id),
+    mutationFn: ProjectService.deleteProject,
     onSuccess: () => {
+      // **BACKEND CONNECTION POINT**
+      // Invalidate and refetch project queries after successful deletion
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast({
-        title: 'Success',
-        description: 'Project deleted successfully',
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete project',
-        variant: 'destructive',
-      });
     },
   });
 };
 
-export const useClientProjects = (clientId: string) => {
-  return useQuery({
-    queryKey: ['projects', 'client', clientId],
-    queryFn: () => projectService.getProjectsByClient(clientId),
-    enabled: !!clientId,
+export const useAssignDeveloper = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ projectId, assignData }: { projectId: string; assignData: any }) =>
+      ProjectService.assignDeveloperToProject(projectId, assignData),
+    onSuccess: (data, variables) => {
+      // **BACKEND CONNECTION POINT**
+      // Update the specific project and invalidate related queries
+      queryClient.setQueryData(['project', variables.projectId], data);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
   });
 };
 
-export const useDeveloperProjects = (developerId: string) => {
-  return useQuery({
-    queryKey: ['projects', 'developer', developerId],
-    queryFn: () => projectService.getProjectsByDeveloper(developerId),
-    enabled: !!developerId,
+export const useRemoveDeveloper = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ projectId, developerId }: { projectId: string; developerId: string }) =>
+      ProjectService.removeDeveloperFromProject(projectId, developerId),
+    onSuccess: (data, variables) => {
+      // **BACKEND CONNECTION POINT**
+      // Update the specific project and invalidate related queries
+      queryClient.setQueryData(['project', variables.projectId], data);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
   });
 };
