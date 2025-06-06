@@ -1,5 +1,6 @@
 
 // API Client configuration and base methods
+// TODO: Move API URL to environment variables for production
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 interface ApiResponse<T = any> {
@@ -46,6 +47,8 @@ class ApiClient {
     }
 
     try {
+      console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`);
+      
       const response = await fetch(url, {
         ...options,
         headers,
@@ -53,13 +56,19 @@ class ApiClient {
 
       const data = await response.json();
 
+      // TODO: Add response interceptors for common error handling
       if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
+        console.error(`❌ API Error [${endpoint}]:`, data);
+        throw new Error(data.message || `HTTP ${response.status}: Request failed`);
       }
 
+      console.log(`✅ API Success [${endpoint}]:`, data);
       return data;
     } catch (error) {
-      console.error(`API Error [${endpoint}]:`, error);
+      console.error(`💥 API Network Error [${endpoint}]:`, error);
+      
+      // TODO: Add retry logic for network failures
+      // TODO: Add offline detection and queuing
       throw error;
     }
   }

@@ -1,18 +1,28 @@
 
 const express = require('express');
 const cors = require('cors');
+const connectDB = require('./config/database');
 const routes = require('./routes');
 
 const app = express();
 const port = process.env.PORT || 3001;
 
+// TODO: Connect to database when ready
+// connectDB();
+
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173', // Adjust this to your frontend URL
+  origin: ['http://localhost:5173', 'http://localhost:3000'], // Frontend URLs
   credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// TODO: Add request logging middleware for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`, req.body);
+  next();
+});
 
 // Routes
 app.use('/api', routes);
@@ -36,6 +46,8 @@ app.use('*', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  console.log(`Visit http://localhost:${port}/api/health to check server status`);
+  console.log(`🚀 Server running on port ${port}`);
+  console.log(`📊 Health check: http://localhost:${port}/api/health`);
+  console.log(`🔐 Auth endpoints: http://localhost:${port}/api/auth/login`);
+  console.log(`📝 Register endpoint: http://localhost:${port}/api/auth/register`);
 });
